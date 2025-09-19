@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Análise de Escalas - 3º Pelotão</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #1e3c72;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .upload-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .upload-area {
+            border: 3px dashed #1e3c72;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .upload-area:hover {
+            background: #e3f2fd;
+            border-color: #2a5298;
+        }
+        
+        .upload-area.dragover {
+            background: #bbdefb;
+            border-color: #1976d2;
+            transform: scale(1.02);
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 3em;
+            color: #1e3c72;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        
+        .upload-hint {
+            color: #777;
+            font-size: 0.9em;
+        }
+        
+        .file-list {
+            margin-top: 20px;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .file-icon {
+            font-size: 1.5em;
+            color: #4caf50;
+            margin-right: 10px;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .file-status {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .remove-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        
+        .remove-btn:hover {
+            background: #d32f2f;
+        }
+        
+        .process-btn {
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .process-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .process-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .results-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-left: 5px solid #1e3c72;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #1e3c72;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            background: #e0e6ed;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .tab.active {
+            background: #1e3c72;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .consolidado-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .consolidado-table th,
+        .consolidado-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e6ed;
+        }
+        
+        .consolidado-table th {
+            background: #f5f5f5;
+            font-weight: bold;
+            color: #1e3c72;
+            position: sticky;
+            top: 0;
+        }
+        
+        .consolidado-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .alerta {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin: 2px;
+            display: inline-block;
+        }
+        
+        .alerta-critico {
+            background: #ff4444;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        .alerta-atencao {
+            background: #ffa500;
+            color: white;
+        }
+        
+        .alerta-domingo {
+            background: #ff0000;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .alerta-sabado {
+            background: #ff8c00;
+            color: white;
+        }
+        
+        .alerta-subcarga {
+            background: #ffeb3b;
+            color: #333;
+        }
+        
+        .alerta-sobrecarga {
+            background: #f44336;
+            color: white;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1e3c72;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .policial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .policial-card {
+            background: white;
+            border: 1px solid #e0e6ed;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .policial-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        
+        .policial-nome {
+            font-weight: bold;
+            color: #1e3c72;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+        
+        .policial-detalhes {
+            color: #555;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .alert-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-title {
+            color: #856404;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .export-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 0.9em;
+        }
+        
+        .export-btn:hover {
+            background: #218838;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 20px;
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚔 Sistema Automático de Análise de Escalas</h1>
+            <p>3º Pelotão - 2º Batalhão de Polícia Rodoviária</p>
+            <p>Processamento inteligente com alertas automáticos</p>
+        </div>
+        
+        <div class="upload-section">
+            <h3 style="color: #1e3c72; margin-bottom: 20px;">📁 Upload de Escalas</h3>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Arraste os arquivos Excel aqui ou clique para selecionar</div>
+                <div class="upload-hint">Aceita até 4 escalas simultâneas (.xlsx, .xls)</div>
+                <input type="file" id="fileInput" multiple accept=".xlsx,.xls" />
+            </div>
+            
+            <div class="file-list" id="fileList"></div>
+            
+            <button class="process-btn" id="processBtn" disabled>
+                🔄 Processar Escalas
+            </button>
+            
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill" style="width: 0%;">0%</div>
+            </div>
+        </div>
+        
+        <div class="results-section" id="resultsSection">
+            <h3 style="color: #1e3c72; margin-bottom: 20px;">📊 Resultados da Análise</h3>
+            
+            <div class="stats-grid" id="statsGrid">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('consolidado')">📈 Consolidado</button>
+                <button class="tab" onclick="showTab('escalas')">📋 Por Escala</button>
+                <button class="tab" onclick="showTab('alertas')">⚠️ Alertas</button>
+                <button class="tab" onclick="showTab('estatisticas')">📊 Estatísticas</button>
+            </div>
+            
+            <div id="consolidado" class="tab-content active">
+                <!-- Consolidado content will be populated -->
+            </div>
+            
+            <div id="escalas" class="tab-content">
+                <!-- Escalas content will be populated -->
+            </div>
+            
+            <div id="alertas" class="tab-content">
+                <!-- Alertas content will be populated -->
+            </div>
+            
+            <div id="estatisticas" class="tab-content">
+                <!-- Estatísticas content will be populated -->
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="export-btn" onclick="exportToExcel()">📊 Exportar Excel</button>
+                <button class="export-btn" onclick="exportToPDF()">📄 Exportar PDF</button>
+                <button class="export-btn" onclick="printReport()">🖨️ Imprimir</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFiles = [];
+        let processedData = null;
+        
+        // Upload functionality
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const processBtn = document.getElementById('processBtn');
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('drop', handleDrop);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        fileInput.addEventListener('change', handleFileSelect);
+        processBtn.addEventListener('click', processFiles);
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+        
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            addFiles(files);
+        }
+        
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            addFiles(files);
+        }
+        
+        function addFiles(files) {
+            files.forEach(file => {
+                if (file.type.includes('sheet') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                    if (uploadedFiles.length < 4) {
+                        uploadedFiles.push(file);
+                        updateFileList();
+                    } else {
+                        alert('Máximo de 4 escalas permitidas.');
+                    }
+                } else {
+                    alert('Apenas arquivos Excel são aceitos.');
+                }
+            });
+            
+            processBtn.disabled = uploadedFiles.length === 0;
+        }
+        
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            updateFileList();
+            processBtn.disabled = uploadedFiles.length === 0;
+        }
+        
+        function updateFileList() {
+            fileList.innerHTML = uploadedFiles.map((file, index) => `
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-icon">📄</div>
+                        <div>
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-status">Pronto para processar</div>
+                        </div>
+                    </div>
+                    <button class="remove-btn" onclick="removeFile(${index})">Remover</button>
+                </div>
+            `).join('');
+        }
+        
+        async function processFiles() {
+            if (uploadedFiles.length === 0) return;
+            
+            processBtn.disabled = true;
+            processBtn.innerHTML = '🔄 Processando...';
+            
+            showProgress(0);
+            
+            try {
+                const escalasData = [];
+                
+                for (let i = 0; i < uploadedFiles.length; i++) {
+                    const file = uploadedFiles[i];
+                    const progress = ((i + 1) / uploadedFiles.length) * 100;
+                    showProgress(progress, `Processando ${file.name}...`);
+                    
+                    const data = await processExcelFile(file);
+                    if (data) {
+                        escalasData.push(data);
+                    }
+                    
+                    // Simular tempo de processamento
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                if (escalasData.length > 0) {
+                    processedData = analyzeEscalas(escalasData);
+                    displayResults(processedData);
+                    document.getElementById('resultsSection').style.display = 'block';
+                } else {
+                    alert('Nenhuma escala válida foi encontrada nos arquivos.');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao processar arquivos:', error);
+                alert('Erro ao processar os arquivos. Verifique se são escalas válidas.');
+            }
+            
+            processBtn.disabled = false;
+            processBtn.innerHTML = '🔄 Processar Escalas';
+            hideProgress();
+        }
+        
+        function showProgress(percent, message = '') {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            
+            progressBar.style.display = 'block';
+            progressFill.style.width = percent + '%';
+            progressFill.textContent = message || Math.round(percent) + '%';
+        }
+        
+        function hideProgress() {
+            document.getElementById('progressBar').style.display = 'none';
+        }
+        
+        async function processExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        if (workbook.SheetNames.length === 0) {
+                            resolve(null);
+                            return;
+                        }
+                        
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const escalaData = extractPoliciaisFromWorksheet(worksheet, file.name);
+                        
+                        resolve(escalaData);
+                    } catch (error) {
+                        console.error('Erro ao ler arquivo:', error);
+                        resolve(null);
+                    }
+                };
+                
+                reader.onerror = () => resolve(null);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        function extractPoliciaisFromWorksheet(worksheet, fileName) {
+            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            const policiais = new Map();
+            
+            // Extrair período do nome do arquivo
+            const periodoMatch = fileName.match(/(\d{2}[A-Z]{3}\d{2})\s+a\s+(\d{2}[A-Z]{3}\d{2})/i);
+            let periodo = 'Período não identificado';
+            if (periodoMatch) {
+                periodo = `${periodoMatch[1]} a ${periodoMatch[2]}`;
+            }
+            
+            // Extrair número da escala
+            const escalaMatch = fileName.match(/(\d{3})/);
+            const numeroEscala = escalaMatch ? escalaMatch[1] : 'XXX';
+            
+            // Encontrar cabeçalho
+            let headerRow = -1;
+            for (let row = 0; row <= Math.min(10, range.e.r); row++) {
+                const cellA = worksheet[XLSX.utils.encode_cell({r: row, c: 0})];
+                if (cellA && cellA.v && cellA.v.toString().toUpperCase().includes('FUNÇÃO')) {
+                    headerRow = row;
+                    break;
+                }
+            }
+            
+            if (headerRow === -1) {
+                return { fileName, numeroEscala, periodo, policiais: new Map() };
+            }
+            
+            const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+            
+            // Processar linhas
+            for (let row = headerRow + 1; row <= range.e.r; row++) {
+                for (let col = 2; col <= 8; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({r: row, c: col});
+                    const cell = worksheet[cellAddress];
+                    
+                    if (cell && cell.v && typeof cell.v === 'string') {
+                        const valor = cell.v.toString().trim();
+                        
+                        // Padrão mais robusto para identificar policiais
+                        const padraoPolicial = /^(1º\s*Sgt|2º\s*Sgt|3º\s*Sgt|Cb|Sd)\s*PM\s+[\d-]+\s+([A-Za-záêôçãõüÀ-ÿ\s]+)/i;
+                        const match = valor.match(padraoPolicial);
+                        
+                        if (match) {
+                            let nome = match[2].trim();
+                            const posto = match[1].trim();
+                            
+                            // Limpar nome (remover números e caracteres especiais no final)
+                            nome = nome.replace(/\s*\(\d+\).*$/, '').trim();
+                            
+                            const nomeCompleto = `${posto} PM ${nome}`;
+                            const dia = diasSemana[col - 2];
+                            
+                            if (!policiais.has(nomeCompleto)) {
+                                policiais.set(nomeCompleto, {
+                                    nome: nomeCompleto,
+                                    posto: posto,
+                                    nomeSimples: nome,
+                                    diasTrabalhados: [],
+                                    totalDias: 0,
+                                    sabados: 0,
+                                    domingos: 0
+                                });
+                            }
+                            
+                            const policial = policiais.get(nomeCompleto);
+                            if (!policial.diasTrabalhados.includes(dia)) {
+                                policial.diasTrabalhados.push(dia);
+                                policial.totalDias++;
+                                
+                                if (dia === 'Sábado') policial.sabados++;
+                                if (dia === 'Domingo') policial.domingos++;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return {
+                fileName,
+                numeroEscala,
+                periodo,
+                policiais
+            };
+        }
+        
+        function analyzeEscalas(escalasData) {
+            const consolidado = new Map();
+            const alertas = {
+                subcarga: [],
+                sobrecarga: [],
+                domingos: [],
+                sabados: [],
+                criticos: []
+            };
+            
+            let totalPoliciais = 0;
+            let totalDias = 0;
+            let totalSabados = 0;
+            let totalDomingos = 0;
+            
+            // Processar cada escala
+            escalasData.forEach(escala => {
+                escala.policiais.forEach((policial, nome) => {
+                    if (!consolidado.has(nome)) {
+                        consolidado.set(nome, {
+                            nome: policial.nome,
+                            posto: policial.posto,
+                            nomeSimples: policial.nomeSimples,
+                            escalas: [],
+                            totalDiasGeral: 0,
+                            totalSabados: 0,
+                            totalDomingos: 0,
+                            semanasTrabalhou: 0,
+                            mediaDisPorSemana: 0
+                        });
+                    }
+                    
+                    const consolidated = consolidado.get(nome);
+                    consolidated.escalas.push({
+                        escala: escala.numeroEscala,
+                        periodo: escala.periodo,
+                        dados: policial
+                    });
+                    
+                    consolidated.totalDiasGeral += policial.totalDias;
+                    consolidated.totalSabados += policial.sabados;
+                    consolidated.totalDomingos += policial.domingos;
+                    consolidated.semanasTrabalhou++;
+                    
+                    // Verificar alertas por escala
+                    if (policial.totalDias < 3) {
+                        alertas.subcarga.push({
+                            policial: policial.nome,
+                            escala: escala.numeroEscala,
+                            dias: policial.totalDias,
+                            periodo: escala.periodo
+                        });
+                    }
+                    
+                    if (policial.totalDias > 4) {
+                        alertas.sobrecarga.push({
+                            policial: policial.nome,
+                            escala: escala.numeroEscala,
+                            dias: policial.totalDias,
+                            periodo: escala.periodo
+                        });
+                    }
+                    
+                    if (policial.domingos > 0) {
+                        alertas.domingos.push({
+                            policial: policial.nome,
+                            escala: escala.numeroEscala,
+                            quantidade: policial.domingos,
+                            periodo: escala.periodo
+                        });
+                    }
+                    
+                    if (policial.sabados > 0) {
+                        alertas.sabados.push({
+                            policial: policial.nome,
+                            escala: escala.numeroEscala,
+                            quantidade: policial.sabados,
+                            periodo: escala.periodo
+                        });
+                    }
+                    
+                    // Alertas críticos (menos de 3 dias E fim de semana)
+                    if (policial.totalDias < 3 && (policial.sabados > 0 || policial.domingos > 0)) {
+                        alertas.criticos.push({
+                            policial: policial.nome,
+                            escala: escala.numeroEscala,
+                            dias: policial.totalDias,
+                            sabados: policial.sabados,
+                            domingos: policial.domingos,
+                            periodo: escala.periodo
+                        });
+                    }
+                    
+                    totalDias += policial.totalDias;
+                    totalSabados += policial.sabados;
+                    totalDomingos += policial.domingos;
+                });
+            });
+            
+            // Calcular médias
+            consolidado.forEach((policial) => {
+                policial.mediaDisPorSemana = (policial.totalDiasGeral / policial.semanasTrabalhou).toFixed(2);
+            });
+            
+            totalPoliciais = consolidado.size;
+            const mediaGeralDias = totalPoliciais > 0 ? (totalDias / totalPoliciais).toFixed(1) : 0;
+            
+            return {
+                escalasData,
+                consolidado,
+                alertas,
+                estatisticas: {
+                    totalEscalas: escalasData.length,
+                    totalPoliciais,
+                    totalDias,
+                    totalSabados,
+                    totalDomingos,
+                    mediaGeralDias,
+                    totalAlertas: alertas.subcarga.length + alertas.sobrecarga.length + alertas.criticos.length
+                }
+            };
+        }
+        
+        function displayResults(data) {
+            displayStats(data.estatisticas);
+            displayConsolidado(data.consolidado);
+            displayEscalas(data.escalasData);
+            displayAlertas(data.alertas);
+            displayEstatisticas(data.estatisticas, data.alertas);
+        }
+        
+        function displayStats(stats) {
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalEscalas}</div>
+                    <div class="stat-label">Escalas Processadas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalPoliciais}</div>
+                    <div class="stat-label">Policiais Únicos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.mediaGeralDias}</div>
+                    <div class="stat-label">Média Dias/Semana</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalDomingos}</div>
+                    <div class="stat-label">Total Domingos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalSabados}</div>
+                    <div class="stat-label">Total Sábados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalAlertas}</div>
+                    <div class="stat-label">Alertas Gerados</div>
+                </div>
+            `;
+        }
+        
+        function displayConsolidado(consolidado) {
+            const content = document.getElementById('consolidado');
+            let tableRows = '';
+            
+            // Ordenar por média decrescente
+            const sortedPoliciais = Array.from(consolidado.entries())
+                .sort(([,a], [,b]) => parseFloat(b.mediaDisPorSemana) - parseFloat(a.mediaDisPorSemana));
+            
+            sortedPoliciais.forEach(([nome, policial]) => {
+                const mediaClass = parseFloat(policial.mediaDisPorSemana) >= 3.5 ? 'style="background-color: #c8e6c9"' : 
+                                   parseFloat(policial.mediaDisPorSemana) < 2.5 ? 'style="background-color: #ffcdd2"' : '';
+                
+                const alertas = [];
+                if (policial.totalDomingos > 0) alertas.push(`<span class="alerta alerta-domingo">${policial.totalDomingos} DOM</span>`);
+                if (policial.totalSabados > 0) alertas.push(`<span class="alerta alerta-sabado">${policial.totalSabados} SÁB</span>`);
+                if (parseFloat(policial.mediaDisPorSemana) < 3) alertas.push(`<span class="alerta alerta-subcarga">BAIXA</span>`);
+                if (parseFloat(policial.mediaDisPorSemana) > 4) alertas.push(`<span class="alerta alerta-sobrecarga">ALTA</span>`);
+                
+                tableRows += `
+                    <tr ${mediaClass}>
+                        <td><strong>${policial.nome}</strong></td>
+                        <td>${policial.semanasTrabalhou}</td>
+                        <td>${policial.totalDiasGeral}</td>
+                        <td><strong>${policial.mediaDisPorSemana}</strong></td>
+                        <td style="color: red; font-weight: bold;">${policial.totalDomingos}</td>
+                        <td style="color: orange; font-weight: bold;">${policial.totalSabados}</td>
+                        <td>${alertas.join(' ')}</td>
+                    </tr>
+                `;
+            });
+            
+            content.innerHTML = `
+                <h4>📋 Relatório Consolidado</h4>
+                <table class="consolidado-table">
+                    <thead>
+                        <tr>
+                            <th>Policial</th>
+                            <th>Escalas</th>
+                            <th>Total Dias</th>
+                            <th>Média/Semana</th>
+                            <th style="color: red;">Domingos</th>
+                            <th style="color: orange;">Sábados</th>
+                            <th>Alertas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function displayEscalas(escalasData) {
+            const content = document.getElementById('escalas');
+            let escalasTabs = '';
+            let escalasContent = '';
+            
+            escalasData.forEach((escala, index) => {
+                const isActive = index === 0 ? 'active' : '';
+                escalasTabs += `<button class="tab ${isActive}" onclick="showEscalaTab('escala${index}')">${escala.numeroEscala}</button>`;
+                
+                let policiaisCards = '';
+                escala.policiais.forEach((policial) => {
+                    const alertas = [];
+                    if (policial.totalDias < 3) alertas.push(`<span class="alerta alerta-subcarga">MENOS DE 3 DIAS</span>`);
+                    if (policial.totalDias > 4) alertas.push(`<span class="alerta alerta-sobrecarga">MAIS DE 4 DIAS</span>`);
+                    if (policial.domingos > 0) alertas.push(`<span class="alerta alerta-domingo">${policial.domingos} DOM</span>`);
+                    if (policial.sabados > 0) alertas.push(`<span class="alerta alerta-sabado">${policial.sabados} SÁB</span>`);
+                    
+                    policiaisCards += `
+                        <div class="policial-card">
+                            <div class="policial-nome">${policial.nome}</div>
+                            <div class="policial-detalhes">
+                                ${policial.totalDias} dias: ${policial.diasTrabalhados.join(', ')}
+                            </div>
+                            <div>${alertas.join(' ')}</div>
+                        </div>
+                    `;
+                });
+                
+                escalasContent += `
+                    <div id="escala${index}" class="tab-content ${isActive}">
+                        <h4>Escala ${escala.numeroEscala} - ${escala.periodo}</h4>
+                        <p><strong>${escala.policiais.size} policiais</strong></p>
+                        <div class="policial-grid">
+                            ${policiaisCards}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            content.innerHTML = `
+                <div class="tabs">
+                    ${escalasTabs}
+                </div>
+                ${escalasContent}
+            `;
+        }
+        
+        function displayAlertas(alertas) {
+            const content = document.getElementById('alertas');
+            
+            let criticosHtml = '';
+            if (alertas.criticos.length > 0) {
+                alertas.criticos.forEach(alerta => {
+                    criticosHtml += `
+                        <div class="policial-card">
+                            <div class="policial-nome">${alerta.policial}</div>
+                            <div class="policial-detalhes">
+                                Escala ${alerta.escala} (${alerta.periodo})<br>
+                                Apenas ${alerta.dias} dias - ${alerta.domingos} domingos, ${alerta.sabados} sábados
+                            </div>
+                            <div>
+                                <span class="alerta alerta-critico">CRÍTICO</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                criticosHtml = '<p>✅ Nenhum alerta crítico encontrado.</p>';
+            }
+            
+            let subcargaHtml = '';
+            if (alertas.subcarga.length > 0) {
+                alertas.subcarga.forEach(alerta => {
+                    subcargaHtml += `
+                        <div class="policial-card">
+                            <div class="policial-nome">${alerta.policial}</div>
+                            <div class="policial-detalhes">
+                                Escala ${alerta.escala} (${alerta.periodo})<br>
+                                Apenas ${alerta.dias} dias trabalhados
+                            </div>
+                            <div>
+                                <span class="alerta alerta-subcarga">SUBCARGA</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                subcargaHtml = '<p>✅ Nenhum caso de subcarga encontrado.</p>';
+            }
+            
+            let domingosHtml = '';
+            if (alertas.domingos.length > 0) {
+                alertas.domingos.forEach(alerta => {
+                    domingosHtml += `
+                        <div class="policial-card">
+                            <div class="policial-nome">${alerta.policial}</div>
+                            <div class="policial-detalhes">
+                                Escala ${alerta.escala} (${alerta.periodo})<br>
+                                ${alerta.quantidade} domingo(s) trabalhado(s)
+                            </div>
+                            <div>
+                                <span class="alerta alerta-domingo">DOMINGO</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                domingosHtml = '<p>✅ Nenhum trabalho em domingo encontrado.</p>';
+            }
+            
+            content.innerHTML = `
+                <div class="alert-section" style="background: #ffebee;">
+                    <div class="alert-title">🔴 ALERTAS CRÍTICOS (${alertas.criticos.length})</div>
+                    <div class="policial-grid">
+                        ${criticosHtml}
+                    </div>
+                </div>
+                
+                <div class="alert-section">
+                    <div class="alert-title">⚠️ SUBCARGA DE TRABALHO (${alertas.subcarga.length})</div>
+                    <div class="policial-grid">
+                        ${subcargaHtml}
+                    </div>
+                </div>
+                
+                <div class="alert-section" style="background: #ffebee;">
+                    <div class="alert-title">🔴 TRABALHO EM DOMINGOS (${alertas.domingos.length})</div>
+                    <div class="policial-grid">
+                        ${domingosHtml}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function displayEstatisticas(stats, alertas) {
+            const content = document.getElementById('estatisticas');
+            
+            // Calcular distribuição de dias
+            const distribuicao = {1: 0, 2: 0, 3: 0, 4: 0, '5+': 0};
+            
+            content.innerHTML = `
+                <h4>📊 Estatísticas Detalhadas</h4>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.totalEscalas}</div>
+                        <div class="stat-label">Escalas Analisadas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.totalPoliciais}</div>
+                        <div class="stat-label">Policiais Diferentes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.totalDias}</div>
+                        <div class="stat-label">Total Dias Trabalhados</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.mediaGeralDias}</div>
+                        <div class="stat-label">Média Geral Dias/Semana</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${alertas.subcarga.length}</div>
+                        <div class="stat-label">Casos Subcarga</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${alertas.sobrecarga.length}</div>
+                        <div class="stat-label">Casos Sobrecarga</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.totalDomingos + stats.totalSabados}</div>
+                        <div class="stat-label">Total Fins de Semana</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${alertas.criticos.length}</div>
+                        <div class="stat-label">Alertas Críticos</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h5>🎯 Recomendações</h5>
+                    <ul style="margin-left: 20px; color: #555;">
+                        ${alertas.criticos.length > 0 ? '<li style="color: red;">Atenção especial aos alertas críticos - policiais com subcarga trabalhando em fins de semana</li>' : ''}
+                        ${alertas.subcarga.length > 3 ? '<li style="color: orange;">Revisar distribuição de carga - muitos casos de subcarga</li>' : ''}
+                        ${stats.totalDomingos > stats.totalSabados * 1.5 ? '<li style="color: red;">Excesso de trabalho em domingos comparado aos sábados</li>' : ''}
+                        <li>Média ideal: 3-4 dias por semana por policial</li>
+                        <li>Evitar escalas com menos de 3 ou mais de 4 dias</li>
+                        <li>Minimizar trabalho em domingos quando possível</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        function showTab(tabName) {
+            // Remove active from all tabs and contents
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active to clicked tab and corresponding content
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+        
+        function showEscalaTab(tabName) {
+            // For escala tabs within the escalas section
+            const parent = event.target.closest('.tab-content');
+            parent.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            parent.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+        
+        function exportToExcel() {
+            if (!processedData) {
+                alert('Nenhum dado para exportar. Processe as escalas primeiro.');
+                return;
+            }
+            
+            // Criar workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Aba consolidado
+            const consolidadoData = [];
+            processedData.consolidado.forEach((policial) => {
+                consolidadoData.push({
+                    'Policial': policial.nome,
+                    'Escalas Participou': policial.semanasTrabalhou,
+                    'Total Dias': policial.totalDiasGeral,
+                    'Média por Semana': policial.mediaDisPorSemana,
+                    'Domingos': policial.totalDomingos,
+                    'Sábados': policial.totalSabados
+                });
+            });
+            
+            const wsConsolidado = XLSX.utils.json_to_sheet(consolidadoData);
+            XLSX.utils.book_append_sheet(wb, wsConsolidado, 'Consolidado');
+            
+            // Aba alertas
+            const alertasData = [];
+            processedData.alertas.criticos.forEach(alerta => {
+                alertasData.push({
+                    'Tipo': 'CRÍTICO',
+                    'Policial': alerta.policial,
+                    'Escala': alerta.escala,
+                    'Período': alerta.periodo,
+                    'Dias': alerta.dias,
+                    'Observações': `${alerta.domingos} domingos, ${alerta.sabados} sábados`
+                });
+            });
+            
+            processedData.alertas.subcarga.forEach(alerta => {
+                alertasData.push({
+                    'Tipo': 'SUBCARGA',
+                    'Policial': alerta.policial,
+                    'Escala': alerta.escala,
+                    'Período': alerta.periodo,
+                    'Dias': alerta.dias,
+                    'Observações': 'Menos de 3 dias'
+                });
+            });
+            
+            const wsAlertas = XLSX.utils.json_to_sheet(alertasData);
+            XLSX.utils.book_append_sheet(wb, wsAlertas, 'Alertas');
+            
+            // Salvar arquivo
+            const hoje = new Date();
+            const nomeArquivo = `Analise_Escalas_${hoje.getFullYear()}${(hoje.getMonth()+1).toString().padStart(2,'0')}${hoje.getDate().toString().padStart(2,'0')}.xlsx`;
+            XLSX.writeFile(wb, nomeArquivo);
+        }
+        
+        function exportToPDF() {
+            alert('Função de exportar PDF será implementada em breve.');
+        }
+        
+        function printReport() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
